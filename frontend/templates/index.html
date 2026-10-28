@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document RAG</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <aside class="rail" aria-label="Workspace navigation">
+        <div class="brand-mark">R</div>
+        <nav class="rail-nav">
+          <button class="rail-pill active">RAG</button>
+          <button class="rail-pill">PDF</button>
+          <button class="rail-pill">Files</button>
+          <button class="rail-pill">Notes</button>
+        </nav>
+        <button class="add-button" aria-label="Add document">+</button>
+      </aside>
+
+      <aside class="conversation-sidebar">
+        <div class="sidebar-heading">
+          <div>
+            <p class="eyebrow">Workspace</p>
+            <h1>Document RAG</h1>
+          </div>
+          <button class="icon-button" aria-label="More options">•••</button>
+        </div>
+
+        <label class="search-box">
+          <span aria-hidden="true">⌕</span>
+          <input type="search" placeholder="Search" />
+        </label>
+
+        <div class="section-label">
+          <span>Conversations</span>
+          <button class="small-action" aria-label="New conversation">+</button>
+        </div>
+
+        <div class="conversation-list">
+          <button class="conversation active">
+            <span class="conversation-avatar lime">R</span>
+            <span class="conversation-copy">
+              <strong>Document RAG</strong>
+              <small>Ask questions about your documents.</small>
+            </span>
+            <span class="status-dot"></span>
+          </button>
+          <button class="conversation">
+            <span class="conversation-avatar blue">D</span>
+            <span class="conversation-copy">
+              <strong>Diet PDF</strong>
+              <small>Recent document conversation</small>
+            </span>
+          </button>
+        </div>
+
+        <div class="sidebar-footer">
+          <span class="avatar user-avatar">M</span>
+          <div>
+            <strong>My workspace</strong>
+            <small>Local documents</small>
+          </div>
+          <button class="icon-button" aria-label="Workspace settings">⚙</button>
+        </div>
+      </aside>
+
+      <section class="chat-panel">
+        <header class="chat-header">
+          <div class="chat-title">
+            <span class="conversation-avatar lime">R</span>
+            <div>
+              <h2>Document RAG</h2>
+              <span class="online-label"><i></i> Ready to answer</span>
+            </div>
+          </div>
+          <div class="header-actions">
+            <button class="icon-button" aria-label="Search conversation">⌕</button>
+            <button class="icon-button" aria-label="Conversation settings">⚙</button>
+            <span class="avatar user-avatar">M</span>
+          </div>
+        </header>
+
+        <div class="chat-body" id="chatBody">
+          <div class="date-chip">Today</div>
+          <div class="system-note">Ask questions about your documents.</div>
+          <article class="message assistant-message">
+            <span class="avatar assistant-avatar">R</span>
+            <div class="message-content">
+              <div class="message-meta"><strong>Document RAG</strong><time>Now</time></div>
+              <p>Type a question below to search your documents and generate an answer.</p>
+            </div>
+          </article>
+        </div>
+
+        <form class="composer" id="composer">
+          <button type="button" class="attach-button" aria-label="Attach document">⌕</button>
+          <input id="questionInput" type="text" placeholder="Ask a question about your documents..." autocomplete="off" />
+          <button type="button" class="composer-action" aria-label="Voice input">◌</button>
+          <button type="submit" class="send-button" aria-label="Send question">➤</button>
+        </form>
+      </section>
+
+      <aside class="details-panel">
+        <div class="details-actions">
+          <button class="round-action selected" aria-label="Documents">▤</button>
+          <button class="round-action" aria-label="Search">⌕</button>
+          <button class="round-action" aria-label="Settings">⚙</button>
+        </div>
+
+        <section class="details-card">
+          <div class="card-heading"><h3>Documents</h3><span>1</span></div>
+          <div class="document-item">
+            <span class="file-icon">▧</span>
+            <div><strong>diet.pdf</strong><small>Available for questions</small></div>
+            <span class="check">✓</span>
+          </div>
+        </section>
+
+        <section class="details-card source-card">
+          <div class="card-heading"><h3>Retrieval</h3><button class="small-action">⌃</button></div>
+          <p>Relevant chunks are selected automatically across your documents.</p>
+          <div class="source-stat"><span>Top results</span><strong>5 chunks</strong></div>
+          <div class="source-stat"><span>Embedding</span><strong>384 dimensions</strong></div>
+        </section>
+      </aside>
+    </main>
+    <script src="./script.js"></script>
+  </body>
+</html>

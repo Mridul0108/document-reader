@@ -1,3 +1,5 @@
+from openai import APIError
+
 from retrieval.search import search_chunks
 from generation.llm import get_llm
 
@@ -34,7 +36,13 @@ Question:
 
     llm = get_llm()
 
-    response = llm.invoke(prompt)
+    try:
+        response = llm.invoke(prompt)
+    except APIError:
+        return (
+            "The answer service is temporarily rate-limited. "
+            "Please try again in a few seconds."
+        )
 
     if response.content:
         return response.content

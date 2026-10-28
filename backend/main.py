@@ -10,6 +10,8 @@ from pydantic import BaseModel
 BACKEND_DIR = Path(__file__).resolve().parent
 PROJECT_DIR = BACKEND_DIR.parent
 FRONTEND_DIR = PROJECT_DIR / "frontend"
+TEMPLATES_DIR = FRONTEND_DIR / "templates"
+STATIC_DIR = FRONTEND_DIR / "static"
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
@@ -39,13 +41,13 @@ def ask_question(request: QuestionRequest):
 
 @app.get("/", include_in_schema=False)
 def frontend_index():
-    return FileResponse(FRONTEND_DIR / "index.html")
+    return FileResponse(TEMPLATES_DIR / "index.html")
 
 
 app.mount(
-    "/",
-    StaticFiles(directory=FRONTEND_DIR, html=True),
-    name="frontend",
+    "/static",
+    StaticFiles(directory=STATIC_DIR),
+    name="static",
 )
 
 

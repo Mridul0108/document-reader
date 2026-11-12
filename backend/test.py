@@ -1,10 +1,8 @@
-from generation.llm import get_llm
+from backend.memory.buffer import add_message,get_history
 
 
-llm = get_llm()
+for i in range(1, 52):
+    add_message("user", f"Message {i}", "fastapi.pdf")
 
-response = llm.invoke(
-    "Explain RAG in one simple sentence."
-)
-
-print(response.content)
+print(get_history())
+print(len(get_history()))

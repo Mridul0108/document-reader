@@ -1,24 +1,22 @@
 import os
 from functools import lru_cache
+from pathlib import Path
 
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 
 load_dotenv()
+load_dotenv(Path(__file__).resolve().parents[2] / ".env.groq", override=True)
 
 
 @lru_cache(maxsize=1)
 def get_llm():
     return ChatOpenAI(
-        # Pin a general-purpose chat model. `openrouter/free` is a router
-        # that can select classification/safety models for normal questions.
-        model="liquid/lfm-2.5-2.6b:free",
+        model=os.getenv("GROQ_MODEL", "openai/gpt-oss-120b"),
         temperature=0,
-        max_tokens=600,
-        max_retries=2,
+        max_tokens=800,
+        max_retries=3,
         timeout=60,
-        reasoning_effort="low",
-        extra_body={"provider": {"allow_fallbacks": True}},
-        api_key=os.getenv("OPENROUTER_API_KEY"),
-        base_url="https://openrouter.ai/api/v1",
+        api_key=os.getenv("GROQ_API_KEY"),
+        base_url="https://api.groq.com/openai/v1",
     )

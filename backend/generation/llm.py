@@ -1,12 +1,10 @@
 import os
 from functools import lru_cache
-from pathlib import Path
 
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 
 load_dotenv()
-load_dotenv(Path(__file__).resolve().parents[2] / ".env.groq", override=True)
 
 
 @lru_cache(maxsize=1)

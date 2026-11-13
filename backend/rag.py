@@ -1,7 +1,14 @@
+import logging
+
 from openai import APIError
 
 from retrieval.search import search_chunks
 from generation.llm import get_llm
+
+from memory.buffer import get_history, add_message
+from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
+
+logger = logging.getLogger(__name__)
 
 
 def _source_line(source_names: list[str]) -> str:
@@ -13,13 +20,28 @@ def _source_line(source_names: list[str]) -> str:
 
 
 def answer_question(question: str):
-    # Retrieve the most relevant chunks across all documents
+    history=get_history()
+    chat_history = []
+
+    for message in history:
+        if message["role"] == "user":
+            chat_history.append(HumanMessage(content=message["content"]))
+
+        elif message["role"] == "assistant":
+            chat_history.append(AIMessage(content=message["content"]))
+
+
+    # Retrieve the most relevant chunks across all documents. This must be
+    # computed even when there is no prior chat history.
     normalized_question = question.lower()
     summary_question = any(
         phrase in normalized_question
         for phrase in (
             "summarize",
             "summary",
+            "essence",
+            "core message",
+            "central message",
             "overview",
             "main idea",
             "key idea",
@@ -77,37 +99,35 @@ User question:
     llm = get_llm()
 
     response = None
-    llm_error = None
     for _ in range(2):
         try:
-            response = llm.invoke(prompt)
-        except APIError as exc:
-            llm_error = str(exc)
+            message = [
+                SystemMessage(content=prompt.split("User question:")[0]),
+                *chat_history,
+                HumanMessage(content=question),
+            ]
+            response = llm.invoke(message)
+        except APIError:
+            logger.exception("LLM provider request failed")
             response = None
             break
-        except Exception as exc:
-            llm_error = str(exc)
+        except Exception:
+            logger.exception("Unexpected error while generating an answer")
             response = None
             break
         if response.content and str(response.content).strip():
             break
 
     if response is not None and response.content:
+        add_message("user",question)
+        add_message("assistant",str(response.content))
         return f"{_source_line(source_names)}\n\n{response.content}"
 
-    if llm_error and "free-models-per-day" in llm_error:
-        fallback_notice = (
-            "The OpenRouter free-model quota has been exhausted. "
-            "Add credits/use your own provider key or set OPENROUTER_MODEL "
-            "to a funded model. Relevant passages:\n"
-        )
-    else:
-        fallback_notice = (
-            "The answer service is temporarily unavailable. Relevant passages:\n"
-        )
-
+    # Retrieval succeeded, but generation did not. Do not append an arbitrary
+    # character slice of the document: it can end mid-word or mid-sentence and
+    # looks like a malformed answer.
     return (
         f"{_source_line(source_names)}\n\n"
-        + fallback_notice
-        + context[:1000]
+        "I found relevant text in your document, but couldn't generate an "
+        "answer right now. Please try again in a moment."
     )

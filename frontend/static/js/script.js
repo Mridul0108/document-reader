@@ -27,12 +27,38 @@ function renderDocuments(documents) {
   documentList.innerHTML = documents.map((document) => `
     <div class="document-item">
       <span class="file-icon">PDF</span>
-      <div><strong title="${escapeHtml(document.file_name)}">${escapeHtml(document.file_name)}</strong><small>Available for questions</small></div>
-      <span class="check" aria-label="Indexed">✓</span>
+      <div class="document-info">
+        <strong title="${escapeAttribute(document.file_name)}">${escapeHtml(document.file_name)}</strong>
+        <small>Available for questions</small>
+      </div>
+      <button class="delete-source" type="button" data-document-id="${document.id}"
+        data-document-name="${escapeAttribute(document.file_name)}"
+        aria-label="Remove ${escapeAttribute(document.file_name)}" title="Remove source">×</button>
     </div>`).join('');
 }
 
 uploadButton.addEventListener('click', () => documentInput.click());
+
+documentList.addEventListener('click', async (event) => {
+  const button = event.target.closest('.delete-source');
+  if (!button || button.disabled) return;
+  const documentName = button.dataset.documentName;
+  if (!window.confirm(`Remove “${documentName}” from your sources?`)) return;
+
+  button.disabled = true;
+  try {
+    const response = await fetch(`/api/documents/${button.dataset.documentId}`, {
+      method: 'DELETE',
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || 'The source could not be removed.');
+    await refreshDocuments();
+    appendMessage('assistant-message', 'Document RAG', `${documentName} was removed from your sources.`, 'R', 'assistant-avatar');
+  } catch (error) {
+    button.disabled = false;
+    appendMessage('assistant-message', 'Document RAG', error.message, 'R', 'assistant-avatar');
+  }
+});
 
 documentInput.addEventListener('change', async () => {
   const file = documentInput.files[0];
@@ -108,6 +134,10 @@ function escapeHtml(value) {
   const element = document.createElement('div');
   element.textContent = value;
   return element.innerHTML;
+}
+
+function escapeAttribute(value) {
+  return escapeHtml(value).replace(/"/g, '&quot;');
 }
 
 refreshDocuments();

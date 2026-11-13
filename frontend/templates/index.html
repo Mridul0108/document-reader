@@ -4,10 +4,36 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Document RAG</title>
-    <link rel="stylesheet" href="/static/css/styles.css?v=4" />
+    <link rel="stylesheet" href="/static/css/styles.css?v=6" />
   </head>
   <body>
     <main class="app-shell">
+      <aside class="source-panel" aria-label="Document sources">
+        <div class="source-brand">
+          <span class="brand-mark">R</span>
+          <span>Rag</span>
+        </div>
+        <section class="source-section">
+          <div class="source-heading">
+            <div>
+              <h1>Sources</h1>
+              <p><span id="documentCount">0</span> PDFs in this workspace</p>
+            </div>
+          </div>
+          <input id="documentInput" type="file" accept="application/pdf" hidden />
+          <button id="uploadButton" class="add-source-button" type="button">
+            <span aria-hidden="true">＋</span> Add sources
+          </button>
+          <div id="documentList" class="document-list" aria-live="polite">
+            <p class="empty-documents">Loading sources...</p>
+          </div>
+        </section>
+        <section class="source-help">
+          <h2>Sources guide your answers</h2>
+          <p>Upload PDFs to add them to your workspace. Remove a source whenever you no longer need it.</p>
+        </section>
+      </aside>
+
       <section class="chat-panel">
         <header class="chat-header">
           <div class="chat-title">
@@ -18,8 +44,7 @@
             </div>
           </div>
           <div class="header-actions">
-            <input id="documentInput" type="file" accept="application/pdf" hidden />
-            <button id="uploadButton" class="upload-button" type="button">Upload PDF</button>
+            <span class="workspace-label">Document workspace</span>
           </div>
         </header>
 
@@ -40,21 +65,7 @@
           <button type="submit" class="send-button" aria-label="Send question">➤</button>
         </form>
       </section>
-
-      <aside class="details-panel">
-        <section class="details-card">
-          <div class="card-heading"><h3>Documents</h3><span id="documentCount">0</span></div>
-          <div id="documentList" class="document-list"><p class="empty-documents">Loading documents...</p></div>
-        </section>
-
-        <section class="details-card source-card">
-          <div class="card-heading"><h3>How it works</h3></div>
-          <p>Relevant chunks are selected automatically across your documents.</p>
-          <div class="source-stat"><span>Top results</span><strong>5 chunks</strong></div>
-          <div class="source-stat"><span>Embedding</span><strong>384 dimensions</strong></div>
-        </section>
-      </aside>
     </main>
-    <script src="/static/js/script.js?v=4"></script>
+    <script src="/static/js/script.js?v=6"></script>
   </body>
 </html>

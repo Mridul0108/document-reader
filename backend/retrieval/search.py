@@ -18,14 +18,46 @@ def search_chunks(
     db = SessionLocal()
 
     try:
+        question_terms = {
+            term for term in re.findall(r"[a-z0-9]+", question.lower())
+            if len(term) >= 3
+            and term not in {
+                "the", "this", "that", "what", "about", "tell", "give",
+                "from", "with", "book", "document", "essence", "summary",
+                "summarize", "overview", "main", "idea", "key",
+            }
+        }
+        documents = db.scalars(select(Document)).all()
+        matching_document_ids = set()
+        for document in documents:
+            filename_terms = {
+                term for term in re.findall(
+                    r"[a-z0-9]+", document.file_name.rsplit(".", 1)[0].lower()
+                )
+                if len(term) >= 3
+                and term not in {"pdfdrive", "epdf", "pub", "copy", "final"}
+            }
+            overlap = question_terms & filename_terms
+            # Require at least two title words when possible, so generic words
+            # like "habits" do not accidentally pin a question to one PDF.
+            threshold = min(2, len(filename_terms))
+            if threshold and len(overlap) >= threshold:
+                matching_document_ids.add(document.id)
+
         # Convert the question into a vector
         embedding_model = get_embedding_model()
 
         query_embedding = embedding_model.embed_query(question)
 
+        statement = select(DocumentChunk).options(
+            joinedload(DocumentChunk.document)
+        )
+        if matching_document_ids:
+            statement = statement.where(
+                DocumentChunk.document_id.in_(matching_document_ids)
+            )
         statement = (
-            select(DocumentChunk)
-            .options(joinedload(DocumentChunk.document))
+            statement
             .order_by(
                 DocumentChunk.embedding.cosine_distance(query_embedding)
             )
@@ -35,40 +67,16 @@ def search_chunks(
         results = db.execute(statement).scalars().all()
         
 
-        if prefer_document_name_match:
-            question_terms = {
-                term for term in re.findall(r"[a-z0-9]+", question.lower())
-                if len(term) >= 4
-                and term not in {"summarize", "summary", "overview", "about"}
-            }
-            if question_terms:
-                documents = db.scalars(select(Document)).all()
-                matching_document_ids = {
-                    document.id
-                    for document in documents
-                    if len(
-                        question_terms
-                        & set(re.findall(r"[a-z0-9]+", document.file_name.lower()))
-                    ) >= 1
-                }
-                matching_results = [
-                    chunk
-                    for chunk in results
-                    if chunk.document_id in matching_document_ids
-                ]
-                if matching_results:
-                    # Once a filename/title match identifies the document,
-                    # use its early chunks as summary material instead of
-                    # mixing a few coincidental matches from other PDFs.
-                    results = db.execute(
-                        select(DocumentChunk)
-                        .options(joinedload(DocumentChunk.document))
-                        .where(
-                            DocumentChunk.document_id.in_(matching_document_ids)
-                        )
-                        .order_by(DocumentChunk.document_id, DocumentChunk.id)
-                        .limit(top_k)
-                    ).scalars().all()
+        if prefer_document_name_match and matching_document_ids:
+            # A summary request should include the opening material for the
+            # explicitly named document, not merely its nearest single chunk.
+            results = db.execute(
+                select(DocumentChunk)
+                .options(joinedload(DocumentChunk.document))
+                .where(DocumentChunk.document_id.in_(matching_document_ids))
+                .order_by(DocumentChunk.document_id, DocumentChunk.id)
+                .limit(top_k)
+            ).scalars().all()
 
         # The opening chunk commonly contains the title, author, and other
         # document metadata. Keep it available even when semantic similarity

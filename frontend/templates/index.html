@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Document RAG</title>
-    <link rel="stylesheet" href="/static/css/styles.css?v=6" />
+    <link rel="stylesheet" href="/static/css/styles.css?v=8" />
   </head>
   <body>
     <main class="app-shell">
@@ -13,6 +13,17 @@
           <span class="brand-mark">R</span>
           <span>Rag</span>
         </div>
+        <section class="history-section" aria-label="Conversation history">
+          <div class="sidebar-section-heading">
+            <h1>Chats</h1>
+            <button id="newChatButton" class="new-chat-button" type="button">
+              <span aria-hidden="true">＋</span> New chat
+            </button>
+          </div>
+          <div id="sessionList" class="session-list" aria-live="polite">
+            <p class="empty-documents">Loading conversations...</p>
+          </div>
+        </section>
         <section class="source-section">
           <div class="source-heading">
             <div>
@@ -39,7 +50,7 @@
           <div class="chat-title">
             <span class="conversation-avatar lime">R</span>
             <div>
-              <h2>Document RAG</h2>
+              <h2 id="activeSessionTitle">New Chat</h2>
               <span class="online-label"><i></i> Ready to answer</span>
             </div>
           </div>
@@ -66,6 +77,6 @@
         </form>
       </section>
     </main>
-    <script src="/static/js/script.js?v=6"></script>
+    <script src="/static/js/script.js?v=8"></script>
   </body>
 </html>

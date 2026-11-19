@@ -9,7 +9,14 @@ from dotenv import load_dotenv
 import os 
 
 from backend.database import Base
-from backend.models import Document,DocumentChunk
+from backend.models import (
+    ChatMessage,
+    ChatSession,
+    Document,
+    DocumentChunk,
+    VectorMemory,
+)
+from backend.memory.memory_model import ConversationMemory
 
 load_dotenv()
 

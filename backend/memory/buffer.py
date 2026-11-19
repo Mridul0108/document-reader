@@ -1,26 +1,25 @@
-conversation_history=[]
+"""Database-backed conversation history helpers.
 
-def add_message(role,content,document=None):
-    Max_messages=50
-    
-    message ={
-        "role":role,
-        "content":content,
-        "document":document,
-    }
-    
-    conversation_history.append(message)
-    if len(conversation_history)>Max_messages:
-                conversation_history.pop(0)
+Unlike the former process-wide list, history is always scoped by both a
+database session and a chat session ID.
+"""
+
+from uuid import UUID
+
+from sqlalchemy.orm import Session
+
+from backend.memory.service import get_chat_messages, save_chat_message
+from backend.models import ChatMessage, ChatSession
 
 
+def add_message(
+    db: Session,
+    session: ChatSession,
+    role: str,
+    content: str,
+) -> ChatMessage:
+    return save_chat_message(db, session, role, content)
 
-def get_history(document=None):
-    if document is None:
-        return conversation_history
 
-    filtered_history=[
-        message for message in conversation_history
-         if message["document"]==document    
-    ]
-    return filtered_history
+def get_history(db: Session, session_id: UUID) -> list[ChatMessage]:
+    return get_chat_messages(db, session_id)

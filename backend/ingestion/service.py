@@ -3,11 +3,11 @@ import logging
 
 from sqlalchemy import select
 
-from database import SessionLocal
-from ingestion.chunker import split_documents
-from ingestion.embeddings import get_embedding_model
-from models import Document, DocumentChunk
-from ingestion.loader import load_pdf
+from backend.database import SessionLocal
+from backend.ingestion.chunker import split_documents
+from backend.ingestion.embeddings import get_embedding_model
+from backend.models import Document, DocumentChunk
+from backend.ingestion.loader import load_pdf
 
 logger = logging.getLogger(__name__)
 

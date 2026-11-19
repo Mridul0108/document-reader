@@ -1,16 +1,25 @@
+from datetime import datetime
 from pathlib import Path
-from uuid import uuid4
+from uuid import UUID, uuid4
 
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
+from sqlalchemy.orm import Session
 
-from database import SessionLocal
-from ingestion.service import ingest_pdf
-from generation.llm import get_llm
-from models import Document
-from rag import answer_question
+from backend.database import SessionLocal, get_db
+from backend.ingestion.service import ingest_pdf
+from backend.generation.llm import get_llm
+from backend.memory.service import (
+    create_chat_session,
+    delete_chat_session,
+    get_chat_messages,
+    get_chat_session,
+    list_chat_sessions,
+)
+from backend.models import Document
+from backend.rag import answer_question
 
 
 PROJECT_DIR = Path(__file__).resolve().parents[2]
@@ -21,11 +30,104 @@ router = APIRouter()
 
 
 class QuestionRequest(BaseModel):
-    question: str
+    question: str = Field(min_length=1)
+    session_id: UUID
 
 
 class AnswerResponse(BaseModel):
     answer: str
+
+
+class CreateSessionRequest(BaseModel):
+    title: str = Field(default="New Chat", max_length=200)
+
+
+class ChatMessageResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    session_id: UUID
+    role: str
+    content: str
+    created_at: datetime
+
+
+class ChatSessionResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    title: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class ChatSessionDetailResponse(ChatSessionResponse):
+    messages: list[ChatMessageResponse]
+
+
+@router.get("/api/health")
+def health_check():
+    return {"status": "ok", "model": get_llm().model_name}
+
+
+@router.post("/api/sessions", response_model=ChatSessionResponse)
+def create_session(
+    request: CreateSessionRequest,
+    db: Session = Depends(get_db),
+):
+    try:
+        session = create_chat_session(db, request.title)
+        db.commit()
+        db.refresh(session)
+        return session
+    except Exception as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=500, detail="The conversation could not be created."
+        ) from exc
+
+
+@router.get("/api/sessions", response_model=list[ChatSessionResponse])
+def get_sessions(db: Session = Depends(get_db)):
+    return list_chat_sessions(db)
+
+
+@router.get(
+    "/api/sessions/{session_id}", response_model=ChatSessionDetailResponse
+)
+def get_session(session_id: UUID, db: Session = Depends(get_db)):
+    session = get_chat_session(db, session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Conversation not found.")
+    return {
+        "id": session.id,
+        "title": session.title,
+        "created_at": session.created_at,
+        "updated_at": session.updated_at,
+        "messages": get_chat_messages(db, session_id),
+    }
+
+
+@router.delete("/api/sessions/{session_id}")
+def remove_session(session_id: UUID, db: Session = Depends(get_db)):
+    session = get_chat_session(db, session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Conversation not found.")
+    try:
+        delete_chat_session(db, session)
+        db.commit()
+    except Exception as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=500, detail="The conversation could not be deleted."
+        ) from exc
+    return {"id": str(session_id), "deleted": True}
+
+
+
+@router.get("/", include_in_schema=False)
+def frontend_index():
+    return FileResponse(TEMPLATES_DIR / "index.html")
 
 
 @router.get("/api/documents")
@@ -35,6 +137,7 @@ def list_documents():
         documents = db.scalars(
             select(Document).order_by(Document.uploaded_at.desc())
         ).all()
+        print(documents)
         return [
             {
                 "id": document.id,
@@ -80,14 +183,25 @@ def delete_document(document_id: int):
     return {"file_name": file_name, "deleted": True}
 
 
-@router.get("/api/health")
-def health_check():
-    return {"status": "ok", "model": get_llm().model_name}
 
 
 @router.post("/api/ask", response_model=AnswerResponse)
-def ask_question(request: QuestionRequest):
-    return AnswerResponse(answer=answer_question(request.question))
+def ask_question(request: QuestionRequest, db: Session = Depends(get_db)):
+    session = get_chat_session(db, request.session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Conversation not found.")
+    try:
+        answer = answer_question(request.question, request.session_id, db)
+        db.commit()
+        return AnswerResponse(answer=answer)
+    except Exception as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail="The answer could not be generated or saved.",
+        ) from exc
+
+
 
 
 @router.post("/api/upload")
@@ -113,8 +227,3 @@ async def upload_document(file: UploadFile = File(...)):
         ) from exc
 
     return {"file_name": file_name, "chunks": chunk_count}
-
-
-@router.get("/", include_in_schema=False)
-def frontend_index():
-    return FileResponse(TEMPLATES_DIR / "index.html")

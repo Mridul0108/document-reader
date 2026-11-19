@@ -3,9 +3,9 @@ import re
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload
 
-from database import SessionLocal
-from models import Document, DocumentChunk
-from ingestion.embeddings import get_embedding_model
+from backend.database import SessionLocal
+from backend.models import Document, DocumentChunk
+from backend.ingestion.embeddings import get_embedding_model
 
 
 def search_chunks(

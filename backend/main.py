@@ -11,10 +11,14 @@ FRONTEND_DIR = PROJECT_DIR / "frontend"
 STATIC_DIR = FRONTEND_DIR / "static"
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
+if str(PROJECT_DIR) not in sys.path:
+    sys.path.insert(0, str(PROJECT_DIR))
 
-from ingestion.service import sync_uploads  # noqa: E402
-from rag import answer_question  # noqa: E402
-from router import router  # noqa: E402
+from backend.ingestion.service import sync_uploads  # noqa: E402
+from backend.database import SessionLocal  # noqa: E402
+from backend.memory.service import create_chat_session  # noqa: E402
+from backend.rag import answer_question  # noqa: E402
+from backend.router import router  # noqa: E402
 
 
 app = FastAPI(title="Document RAG")
@@ -37,15 +41,32 @@ def cli():
     print("Ask questions about your documents.")
     print("Type 'exit' to quit.\n")
 
-    while True:
-        question = input("You: ")
+    db = SessionLocal()
+    try:
+        session = create_chat_session(db)
+        db.commit()
+    except Exception:
+        db.rollback()
+        db.close()
+        raise
 
-        if question.lower() == "exit":
-            break
+    try:
+        while True:
+            question = input("You: ")
 
-        answer = answer_question(question=question)
-        print("\nAI:", answer)
-        print()
+            if question.lower() == "exit":
+                break
+
+            try:
+                answer = answer_question(question, session.id, db)
+                db.commit()
+            except Exception:
+                db.rollback()
+                raise
+            print("\nAI:", answer)
+            print()
+    finally:
+        db.close()
 
 
 if __name__ == "__main__":
